@@ -1,0 +1,49 @@
+name: artifacts
+
+
+on:
+    push:
+      branches:
+        - main
+    pull_request:
+      branches:
+        - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with: 
+          python-version: 3.12
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r app/requirements.txt
+
+      - name: Package application
+        run: tar czf app.tar.gz app/ pytest.ini
+    
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-package
+          path: app.tar.gz
+    
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-package
+      - name: Extract and run tests
+        run: tar xzf app.tar.gz && pip install -r app/requirements.txt && pytest app/tests -v
