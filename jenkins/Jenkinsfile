@@ -1,0 +1,36 @@
+pipeline {
+    agent any
+    stages {
+        stage('Install') {
+            steps {
+                sh 'python3 -m venv venv && . venv/bin/activate && pip install -r app/requirements.txt'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh '. venv/bin/activate && pytest app/tests -v --junitxml=report.xml'
+            }
+            post {
+                always { junit 'report.xml' }
+            }
+        }
+        // TODO: добавьте stage 'Deploy' с условием when { branch 'main' }
+        stage('Deploy') {
+            when {
+                branch 'main'
+            }
+            steps {
+                echo 'Деплой...'
+            }
+        }
+    }
+    // TODO: добавьте post { success / failure } с echo-сообщениями
+    post {
+        success {
+            echo 'Пайплайн успешно выполнен!'
+        }
+        failure {
+            echo 'Ошибка при выполнении пайплайна.'
+        }
+    }
+}
