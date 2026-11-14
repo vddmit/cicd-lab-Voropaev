@@ -3,55 +3,78 @@ stages:
   - build
   - deploy
 
+variables:
+  APP_DIR: "app"
+  DOCKER_TLS_CERTDIR: "/certs"
+
 test:
   stage: test
   image: python:3.12-slim
+
   before_script:
-    - pip install --upgrade pip
-    - pip install -r app/requirements.txt
+    - python -m pip install --upgrade pip
+    - python -m pip install -r app/requirements.txt
+
   script:
-    - pytest app/tests -v --junitxml=report.xml
+    - python -m pytest app/tests -v --junitxml=report.xml
+
   artifacts:
     when: always
     reports:
       junit: report.xml
+    paths:
+      - report.xml
 
 test-matrix:
   stage: test
   image: python:${PYTHON_VERSION}
+
   parallel:
     matrix:
       - PYTHON_VERSION: ["3.11", "3.12"]
+
   before_script:
-    - pip install --upgrade pip
-    - pip install -r app/requirements.txt
+    - python -m pip install --upgrade pip
+    - python -m pip install -r app/requirements.txt
+
   script:
-    - pytest app/tests -v
+    - python -m pytest app/tests -v
 
 build-docker:
   stage: build
   image: docker:27
+
   services:
-    - docker:27-dind
+    - name: docker:27-dind
+      alias: docker
+
   variables:
-    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "$DOCKER_TLS_CERTDIR/client"
+
   before_script:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+
   script:
-    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker build -f app/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - docker push "$CI_REGISTRY_IMAGE:latest"
+
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
 
 deploy:
   stage: deploy
   image: alpine:latest
+
   environment:
     name: production
     url: https://your-production-domain.com
+
   script:
-    - echo "Деплой образа $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA в production..."
+    - echo "Deployment to production is not configured yet."
+
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: manual
