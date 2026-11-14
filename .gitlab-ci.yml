@@ -90,7 +90,6 @@ deploy:
     url: https://your-production-domain.com
 
   script:
-    - echo "Deploy image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - echo "Deployment to production is not configured yet."
 
   rules:
