@@ -5,7 +5,12 @@ stages:
 
 variables:
   APP_DIR: "app"
+  PYTHONPATH: "app"
   DOCKER_TLS_CERTDIR: "/certs"
+
+# =========================
+# TEST
+# =========================
 
 test:
   stage: test
@@ -13,10 +18,10 @@ test:
 
   before_script:
     - python -m pip install --upgrade pip
-    - python -m pip install -r app/requirements.txt
+    - python -m pip install -r $APP_DIR/requirements.txt pytest
 
   script:
-    - python -m pytest app/tests -v --junitxml=report.xml
+    - python -m pytest $APP_DIR/tests -v --junitxml=report.xml
 
   artifacts:
     when: always
@@ -24,6 +29,10 @@ test:
       junit: report.xml
     paths:
       - report.xml
+
+# =========================
+# TEST MATRIX
+# =========================
 
 test-matrix:
   stage: test
@@ -35,10 +44,14 @@ test-matrix:
 
   before_script:
     - python -m pip install --upgrade pip
-    - python -m pip install -r app/requirements.txt
+    - python -m pip install -r $APP_DIR/requirements.txt pytest
 
   script:
-    - python -m pytest app/tests -v
+    - python -m pytest $APP_DIR/tests -v
+
+# =========================
+# BUILD DOCKER
+# =========================
 
 build-docker:
   stage: build
@@ -57,12 +70,16 @@ build-docker:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
 
   script:
-    - docker build -f app/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker build -f $APP_DIR/Dockerfile -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA" -t "$CI_REGISTRY_IMAGE:latest" $APP_DIR
     - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - docker push "$CI_REGISTRY_IMAGE:latest"
 
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+
+# =========================
+# DEPLOY
+# =========================
 
 deploy:
   stage: deploy
@@ -73,6 +90,7 @@ deploy:
     url: https://your-production-domain.com
 
   script:
+    - echo "Deploy image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
     - echo "Deployment to production is not configured yet."
 
   rules:
